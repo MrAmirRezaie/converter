@@ -2,25 +2,30 @@ import os
 import csv
 import json
 from PIL import Image
-import markdown2  # Install with `pip install markdown2`
+import markdown2
 import wave
 import struct
 import logging
-import fitz  # PyMuPDF, install with `pip install pymupdf`
-from docx2pdf import convert  # Install with `pip install docx2pdf`
-from pydub import AudioSegment  # Install with `pip install pydub`
-import pdfkit  # Install with `pip install pdfkit`
+import fitz
+from docx2pdf import convert
+from pydub import AudioSegment
+import pdfkit
 import subprocess
-import xml.etree.ElementTree as ET  # For XML processing
-import yaml  # Install with `pip install pyyaml`
-from pptx import Presentation  # Install with `pip install python-pptx`
-import pandas as pd  # Install with `pip install pandas`
-from gtts import gTTS  # Install with `pip install gtts`
-import moviepy.editor as mp  # Install with `pip install moviepy`
+import xml.etree.ElementTree as ET
+import yaml
+from pptx import Presentation
+import pandas as pd
+from gtts import gTTS
+import moviepy.editor as mp
+import imgkit
 
-# Setup logging
 logging.basicConfig(filename='file_converter.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+
+def log_message(message):
+    print(message)
+    logging.info(message)
 
 
 def log_message(message):
@@ -176,7 +181,7 @@ def resize_image(image_file_path, output_file_path, width, height):
     """Resize an image."""
     try:
         img = Image.open(image_file_path)
-        resized_img = img.resize((width, height), Image.ANTIALIAS)
+        resized_img = img.resize((width, height), Image.Resampling.LANCZOS)
         resized_img.save(output_file_path)
         log_message(f"Image resized and saved as {output_file_path}")
     except Exception as e:
@@ -186,7 +191,11 @@ def resize_image(image_file_path, output_file_path, width, height):
 def html_to_pdf(html_file_path, pdf_file_path):
     """Convert HTML file to PDF."""
     try:
-        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'  # Adjust this path based on your installation
+
+        if not os.path.exists(html_file_path):
+            raise FileNotFoundError(f"HTML file {html_file_path} not found.")
+
+        path_wkhtmltopdf = input("Enter path to wkhtmltopdf executable (e.g., /usr/bin/wkhtmltopdf): ")
         config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
         pdfkit.from_file(html_file_path, pdf_file_path, configuration=config)
         log_message(f"HTML to PDF conversion completed: {pdf_file_path}")
@@ -195,19 +204,23 @@ def html_to_pdf(html_file_path, pdf_file_path):
 
 
 def xml_to_json(xml_file_path, json_file_path):
-    """Convert XML file to JSON."""
+    """Convert XML file to JSON (supports nested elements)."""
     try:
+        def xml_to_dict(element):
+            result = {}
+            for child in element:
+                if len(child):
+                    result[child.tag] = xml_to_dict(child)
+                else:
+                    result[child.tag] = child.text
+            return result
+
         tree = ET.parse(xml_file_path)
         root = tree.getroot()
-
-        def xml_to_dict(element):
-            return {child.tag: xml_to_dict(child) if len(child) else child.text for child in element}
-
-        data = xml_to_dict(root)
+        data = {root.tag: xml_to_dict(root)}
 
         with open(json_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, indent=4)
-
         log_message(f"XML to JSON conversion completed: {json_file_path}")
     except Exception as e:
         log_message(f"Error converting XML to JSON: {e}")
@@ -309,7 +322,7 @@ def mp4_to_avi(mp4_file_path, avi_file_path):
     """Convert MP4 video file to AVI."""
     try:
         clip = mp.VideoFileClip(mp4_file_path)
-        clip.write_videofile(avi_file_path, codec='png')
+        clip.write_videofile(avi_file_path, codec='mpeg4')
         log_message(f"MP4 to AVI conversion completed: {avi_file_path}")
     except Exception as e:
         log_message(f"Error converting MP4 to AVI: {e}")
@@ -369,23 +382,23 @@ def json_to_xml(json_file_path, xml_file_path):
 
 
 def yaml_to_xml(yaml_file_path, xml_file_path):
-    """Convert YAML file to XML."""
+    """Convert YAML to XML (supports nested structures)."""
     try:
-        with open(yaml_file_path, 'r', encoding='utf-8') as yaml_file:
+        with open(yaml_file_path, 'r') as yaml_file:
             data = yaml.safe_load(yaml_file)
 
-        def dict_to_xml(tag, d):
-            elem = ET.Element(tag)
-            for key, val in d.items():
-                child = ET.Element(key)
-                child.text = str(val)
-                elem.append(child)
-            return elem
+        def dict_to_xml(parent, data):
+            for key, value in data.items():
+                element = ET.SubElement(parent, key)
+                if isinstance(value, dict):
+                    dict_to_xml(element, value)
+                else:
+                    element.text = str(value)
 
-        root = dict_to_xml('root', data)
+        root = ET.Element('root')
+        dict_to_xml(root, data)
         tree = ET.ElementTree(root)
         tree.write(xml_file_path, encoding='utf-8', xml_declaration=True)
-
         log_message(f"YAML to XML conversion completed: {xml_file_path}")
     except Exception as e:
         log_message(f"Error converting YAML to XML: {e}")
