@@ -18,6 +18,7 @@ import pandas as pd
 from gtts import gTTS
 import moviepy.editor as mp
 import imgkit
+import comtypes.client
 
 logging.basicConfig(filename='file_converter.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -28,20 +29,11 @@ def log_message(message):
     logging.info(message)
 
 
-def log_message(message):
-    print(message)
-    logging.info(message)
-
-
 def csv_to_json(csv_file_path, json_file_path):
-    """Convert CSV file to JSON."""
-    data = []
-
     try:
         with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
             csv_reader = csv.DictReader(csv_file)
-            for row in csv_reader:
-                data.append(row)
+            data = [row for row in csv_reader]
 
         with open(json_file_path, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, indent=4)
@@ -52,7 +44,6 @@ def csv_to_json(csv_file_path, json_file_path):
 
 
 def json_to_csv(json_file_path, csv_file_path):
-    """Convert JSON file to CSV."""
     try:
         with open(json_file_path, 'r', encoding='utf-8') as json_file:
             data = json.load(json_file)
@@ -74,7 +65,6 @@ def json_to_csv(json_file_path, csv_file_path):
 
 
 def png_to_jpeg(png_file_path, jpeg_file_path):
-    """Convert PNG image to JPEG."""
     try:
         img = Image.open(png_file_path)
         rgb_img = img.convert('RGB')
@@ -85,7 +75,6 @@ def png_to_jpeg(png_file_path, jpeg_file_path):
 
 
 def jpeg_to_png(jpeg_file_path, png_file_path):
-    """Convert JPEG image to PNG."""
     try:
         img = Image.open(jpeg_file_path)
         img.save(png_file_path, 'PNG')
@@ -95,7 +84,6 @@ def jpeg_to_png(jpeg_file_path, png_file_path):
 
 
 def txt_to_md(txt_file_path, md_file_path):
-    """Convert plain text file to Markdown."""
     try:
         with open(txt_file_path, 'r', encoding='utf-8') as txt_file:
             content = txt_file.read()
@@ -109,7 +97,6 @@ def txt_to_md(txt_file_path, md_file_path):
 
 
 def md_to_html(md_file_path, html_file_path):
-    """Convert Markdown file to HTML."""
     try:
         with open(md_file_path, 'r', encoding='utf-8') as md_file:
             content = md_file.read()
@@ -125,7 +112,6 @@ def md_to_html(md_file_path, html_file_path):
 
 
 def raw_audio_to_wav(raw_file_path, wav_file_path, sample_rate=44100, sample_width=2, channels=2):
-    """Convert raw audio file to WAV."""
     try:
         with open(raw_file_path, 'rb') as raw_file:
             raw_data = raw_file.read()
@@ -142,7 +128,6 @@ def raw_audio_to_wav(raw_file_path, wav_file_path, sample_rate=44100, sample_wid
 
 
 def mp3_to_wav(mp3_file_path, wav_file_path):
-    """Convert MP3 audio file to WAV."""
     try:
         audio = AudioSegment.from_mp3(mp3_file_path)
         audio.export(wav_file_path, format="wav")
@@ -152,7 +137,6 @@ def mp3_to_wav(mp3_file_path, wav_file_path):
 
 
 def pdf_to_text(pdf_file_path, text_file_path):
-    """Convert PDF file to plain text."""
     try:
         document = fitz.open(pdf_file_path)
         text = ""
@@ -169,7 +153,6 @@ def pdf_to_text(pdf_file_path, text_file_path):
 
 
 def docx_to_pdf(docx_file_path, pdf_file_path):
-    """Convert DOCX file to PDF."""
     try:
         convert(docx_file_path, pdf_file_path)
         log_message(f"DOCX to PDF conversion completed: {pdf_file_path}")
@@ -178,7 +161,6 @@ def docx_to_pdf(docx_file_path, pdf_file_path):
 
 
 def resize_image(image_file_path, output_file_path, width, height):
-    """Resize an image."""
     try:
         img = Image.open(image_file_path)
         resized_img = img.resize((width, height), Image.Resampling.LANCZOS)
@@ -189,14 +171,12 @@ def resize_image(image_file_path, output_file_path, width, height):
 
 
 def html_to_pdf(html_file_path, pdf_file_path):
-    """Convert HTML file to PDF."""
     try:
-
         if not os.path.exists(html_file_path):
             raise FileNotFoundError(f"HTML file {html_file_path} not found.")
 
-        path_wkhtmltopdf = input("Enter path to wkhtmltopdf executable (e.g., /usr/bin/wkhtmltopdf): ")
-        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
+        path_wkhtmltopdf = input("Enter path to wkhtmltopdf executable (leave blank for default): ")
+        config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf if path_wkhtmltopdf else None)
         pdfkit.from_file(html_file_path, pdf_file_path, configuration=config)
         log_message(f"HTML to PDF conversion completed: {pdf_file_path}")
     except Exception as e:
@@ -204,7 +184,6 @@ def html_to_pdf(html_file_path, pdf_file_path):
 
 
 def xml_to_json(xml_file_path, json_file_path):
-    """Convert XML file to JSON (supports nested elements)."""
     try:
         def xml_to_dict(element):
             result = {}
@@ -212,7 +191,7 @@ def xml_to_json(xml_file_path, json_file_path):
                 if len(child):
                     result[child.tag] = xml_to_dict(child)
                 else:
-                    result[child.tag] = child.text
+                    result[child.tag] = child.text if child.text else ""
             return result
 
         tree = ET.parse(xml_file_path)
@@ -227,7 +206,6 @@ def xml_to_json(xml_file_path, json_file_path):
 
 
 def yaml_to_json(yaml_file_path, json_file_path):
-    """Convert YAML file to JSON."""
     try:
         with open(yaml_file_path, 'r', encoding='utf-8') as yaml_file:
             data = yaml.safe_load(yaml_file)
@@ -241,17 +219,19 @@ def yaml_to_json(yaml_file_path, json_file_path):
 
 
 def pptx_to_pdf(pptx_file_path, pdf_file_path):
-    """Convert PowerPoint (PPTX) file to PDF."""
     try:
-        presentation = Presentation(pptx_file_path)
-        presentation.save(pdf_file_path)
+        powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
+        powerpoint.Visible = 1
+        presentation = powerpoint.Presentations.Open(pptx_file_path)
+        presentation.SaveAs(pdf_file_path, 32)  # 32 is the code for PDF format
+        presentation.Close()
+        powerpoint.Quit()
         log_message(f"PPTX to PDF conversion completed: {pdf_file_path}")
     except Exception as e:
         log_message(f"Error converting PPTX to PDF: {e}")
 
 
 def txt_to_pdf(txt_file_path, pdf_file_path):
-    """Convert plain text file to PDF."""
     try:
         with open(txt_file_path, 'r', encoding='utf-8') as txt_file:
             content = txt_file.read()
@@ -263,7 +243,6 @@ def txt_to_pdf(txt_file_path, pdf_file_path):
 
 
 def md_to_pdf(md_file_path, pdf_file_path):
-    """Convert Markdown file to PDF."""
     try:
         with open(md_file_path, 'r', encoding='utf-8') as md_file:
             content = md_file.read()
@@ -276,7 +255,6 @@ def md_to_pdf(md_file_path, pdf_file_path):
 
 
 def image_to_pdf(image_file_path, pdf_file_path):
-    """Convert image file to PDF."""
     try:
         img = Image.open(image_file_path)
         img.save(pdf_file_path, "PDF", resolution=100.0)
@@ -286,7 +264,6 @@ def image_to_pdf(image_file_path, pdf_file_path):
 
 
 def pdf_to_image(pdf_file_path, image_file_path):
-    """Convert PDF file to image."""
     try:
         document = fitz.open(pdf_file_path)
         for page_num in range(len(document)):
@@ -299,7 +276,6 @@ def pdf_to_image(pdf_file_path, image_file_path):
 
 
 def wav_to_mp3(wav_file_path, mp3_file_path):
-    """Convert WAV audio file to MP3."""
     try:
         audio = AudioSegment.from_wav(wav_file_path)
         audio.export(mp3_file_path, format="mp3")
@@ -309,7 +285,6 @@ def wav_to_mp3(wav_file_path, mp3_file_path):
 
 
 def mp3_to_ogg(mp3_file_path, ogg_file_path):
-    """Convert MP3 audio file to OGG."""
     try:
         audio = AudioSegment.from_mp3(mp3_file_path)
         audio.export(ogg_file_path, format="ogg")
@@ -319,7 +294,6 @@ def mp3_to_ogg(mp3_file_path, ogg_file_path):
 
 
 def mp4_to_avi(mp4_file_path, avi_file_path):
-    """Convert MP4 video file to AVI."""
     try:
         clip = mp.VideoFileClip(mp4_file_path)
         clip.write_videofile(avi_file_path, codec='mpeg4')
@@ -329,7 +303,6 @@ def mp4_to_avi(mp4_file_path, avi_file_path):
 
 
 def avi_to_mp4(avi_file_path, mp4_file_path):
-    """Convert AVI video file to MP4."""
     try:
         clip = mp.VideoFileClip(avi_file_path)
         clip.write_videofile(mp4_file_path, codec='libx264')
@@ -339,7 +312,6 @@ def avi_to_mp4(avi_file_path, mp4_file_path):
 
 
 def excel_to_csv(excel_file_path, csv_file_path):
-    """Convert Excel file to CSV."""
     try:
         df = pd.read_excel(excel_file_path)
         df.to_csv(csv_file_path, index=False)
@@ -349,7 +321,6 @@ def excel_to_csv(excel_file_path, csv_file_path):
 
 
 def csv_to_excel(csv_file_path, excel_file_path):
-    """Convert CSV file to Excel."""
     try:
         df = pd.read_csv(csv_file_path)
         df.to_excel(excel_file_path, index=False)
@@ -359,7 +330,6 @@ def csv_to_excel(csv_file_path, excel_file_path):
 
 
 def json_to_xml(json_file_path, xml_file_path):
-    """Convert JSON file to XML."""
     try:
         with open(json_file_path, 'r', encoding='utf-8') as json_file:
             data = json.load(json_file)
@@ -382,7 +352,6 @@ def json_to_xml(json_file_path, xml_file_path):
 
 
 def yaml_to_xml(yaml_file_path, xml_file_path):
-    """Convert YAML to XML (supports nested structures)."""
     try:
         with open(yaml_file_path, 'r') as yaml_file:
             data = yaml.safe_load(yaml_file)
@@ -405,7 +374,6 @@ def yaml_to_xml(yaml_file_path, xml_file_path):
 
 
 def html_to_image(html_file_path, image_file_path):
-    """Convert HTML file to image."""
     try:
         imgkit.from_file(html_file_path, image_file_path)
         log_message(f"HTML to Image conversion completed: {image_file_path}")
@@ -414,7 +382,6 @@ def html_to_image(html_file_path, image_file_path):
 
 
 def text_to_speech(text_file_path, audio_file_path, language='en'):
-    """Convert text to speech."""
     try:
         with open(text_file_path, 'r', encoding='utf-8') as text_file:
             text = text_file.read()
